@@ -1,0 +1,60 @@
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: transaction-ledger
+  datasource:
+    url: ${LEDGER_DB_URL:jdbc:postgresql://localhost:5432/ledger}
+    username: ${LEDGER_DB_USER:ledger}
+    password: ${LEDGER_DB_PASSWORD:ledger}
+    hikari:
+      maximum-pool-size: ${LEDGER_DB_POOL_SIZE:20}
+      # A transfer waiting on a locked account fails fast (and is retried) instead of hanging.
+      connection-init-sql: SET lock_timeout = '5s'
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  jackson:
+    generator:
+      write-bigdecimal-as-plain: true
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: true
+      # Prevents "150.5" written as a JSON float from silently losing precision.
+      use-big-decimal-for-floats: true
+  mvc:
+    problemdetails:
+      enabled: false
+
+ledger:
+  # Single-currency deployment by default (spec section 1). Add codes to support more.
+  supported-currencies:
+    - USD
+  transfer:
+    # Bounded retry of the WHOLE transaction on deadlock / lock timeout / serialization failure.
+    max-attempts: 3
+    retry-backoff-millis: 25
+    transaction-timeout-seconds: 10
+  reconciliation:
+    # Default tolerance between an internal transfer's created_at and the external transaction_time.
+    default-time-tolerance-seconds: 3600
+    max-rows: 200000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  pattern:
+    level: "%5p [requestId=%X{requestId:-}]"

@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    hikari:
+      # Concurrency tests run many simultaneous transactions; each holds a connection.
+      maximum-pool-size: 40
+
+ledger:
+  # A second currency lets tests exercise CURRENCY_MISMATCH paths.
+  supported-currencies:
+    - USD
+    - EUR
+  transfer:
+    max-attempts: 5
+    retry-backoff-millis: 5
+
+logging:
+  level:
+    com.example.ledger: INFO
